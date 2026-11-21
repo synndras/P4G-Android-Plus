@@ -4,11 +4,13 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.BitmapShader;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.LinearGradient;
 import android.graphics.RectF;
+import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.os.SystemClock;
@@ -25,6 +27,7 @@ final class P4gBackgroundView extends View implements Runnable {
     private final Paint glitchPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Matrix noiseMatrix = new Matrix();
     private final Bitmap noiseBitmap;
+    private final Bitmap sceneBitmap;
     private final BitmapShader noiseShader;
     private final RectF frame = new RectF();
     private final RectF screen = new RectF();
@@ -54,6 +57,9 @@ final class P4gBackgroundView extends View implements Runnable {
         noiseBitmap = Bitmap.createBitmap(pixels, 64, 64, Bitmap.Config.ARGB_8888);
         noiseShader = new BitmapShader(noiseBitmap, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT);
         noisePaint.setShader(noiseShader);
+        int sceneId = context.getResources().getIdentifier("p4gp_launcher_background", "drawable", context.getPackageName());
+        Bitmap decoded = sceneId == 0 ? null : BitmapFactory.decodeResource(context.getResources(), sceneId);
+        sceneBitmap = decoded;
         scanPaint.setColor(Color.BLACK);
         glitchPaint.setColor(Color.WHITE);
     }
@@ -109,6 +115,15 @@ final class P4gBackgroundView extends View implements Runnable {
         float transition = Math.min(1f, Math.max(0f, (now - transitionStarted) / 240f));
         transition = transition * transition * (3f - 2f * transition);
         effectProgress = transitionFrom + (transitionTo - transitionFrom) * transition;
+        if (sceneBitmap != null) {
+            float scale = Math.max(w / sceneBitmap.getWidth(), h / sceneBitmap.getHeight());
+            float dw = sceneBitmap.getWidth() * scale;
+            float dh = sceneBitmap.getHeight() * scale;
+            frame.set((w - dw) * .5f, (h - dh) * .5f, (w + dw) * .5f, (h + dh) * .5f);
+            canvas.drawBitmap(sceneBitmap, null, frame, paint);
+            drawStatic(canvas, w, h, t);
+            return;
+        }
         paint.setShader(backdrop);
         canvas.drawRect(0, 0, w, h, paint);
         paint.setShader(null);
@@ -183,6 +198,28 @@ final class P4gBackgroundView extends View implements Runnable {
         canvas.drawText("✦", w * .91f, h * .35f, textPaint);
         paint.setColor(0x44201608);
         canvas.drawRect(0, h * .79f, w, h, paint);
+    }
+
+    private void drawStatic(Canvas canvas, float w, float h, float t) {
+        if (staticIntensity <= 0 || effectProgress <= .001f) return;
+        int phase = animating ? (int) (t * 29f) : 0;
+        noiseMatrix.setTranslate(phase, -phase * .63f);
+        noiseShader.setLocalMatrix(noiseMatrix);
+        noisePaint.setAlpha((int) (staticIntensity * effectProgress * (animating ? 0.40f + .06f * Math.sin(t * 4f) : .32f)));
+        canvas.drawRect(0, 0, w, h, noisePaint);
+        scanPaint.setAlpha((int) (staticIntensity * effectProgress * .30f));
+        float spacing = Math.max(3f, 5f * Math.max(w / 1280f, h / 720f));
+        for (float y = 0; y < h; y += spacing) canvas.drawLine(0, y, w, y, scanPaint);
+        if (animating) {
+            float bandY = (t * h * .37f) % h;
+            float bandHeight = Math.max(2f, 5f * Math.max(w / 1280f, h / 720f));
+            glitchPaint.setColor(Color.WHITE);
+            glitchPaint.setAlpha((int) (staticIntensity * effectProgress * .50f));
+            canvas.drawRect(0, bandY, w, bandY + bandHeight, glitchPaint);
+            glitchPaint.setColor(0xFFFF5D45);
+            glitchPaint.setAlpha(Math.max(1, staticIntensity / 8));
+            canvas.drawRect(w * .37f + 3f, bandY, w * .92f, bandY + bandHeight * .55f, glitchPaint);
+        }
     }
 
     private void drawTv(Canvas canvas, float x, float y, float width, float height,
