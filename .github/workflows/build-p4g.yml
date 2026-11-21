@@ -517,10 +517,18 @@ jobs:
           fi
 
 
+      - name: Read app version
+        id: app-version
+        shell: bash
+        run: |
+          VERSION_NAME=$(sed -n 's/.*android:versionName="\([^"]*\)".*/\1/p' games/p4g/AndroidManifest.xml)
+          test -n "$VERSION_NAME"
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+
       - name: Upload P4GP APK
         uses: actions/upload-artifact@v4
         with:
-          name: P4GP-0.5.4-beta
+          name: P4GP-${{ steps.app-version.outputs.version_name }}
           path: build-apk/P4GP.apk
           if-no-files-found: error
 
