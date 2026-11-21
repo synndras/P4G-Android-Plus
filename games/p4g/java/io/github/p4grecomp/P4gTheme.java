@@ -12,12 +12,12 @@ import android.widget.TextView;
 
 /** Shared launcher palette; does not change the game's renderer or touch overlay. */
 final class P4gTheme {
-    static final int BACKGROUND = Color.rgb(18, 20, 24);
-    static final int PANEL = Color.rgb(35, 40, 51);
-    static final int YELLOW = Color.rgb(255, 208, 48);
-    static final int INK = Color.rgb(20, 20, 20);
-    static final int TEXT = Color.rgb(236, 238, 242);
-    static final int MUTED = Color.rgb(185, 194, 211);
+    static final int BACKGROUND = Color.rgb(26, 22, 16);
+    static final int PANEL = Color.argb(232, 34, 29, 21);
+    static final int YELLOW = Color.rgb(255, 220, 0);
+    static final int INK = Color.rgb(18, 17, 14);
+    static final int TEXT = Color.rgb(255, 253, 242);
+    static final int MUTED = Color.rgb(222, 211, 176);
 
     private P4gTheme() {}
 
@@ -41,7 +41,8 @@ final class P4gTheme {
         button.setBackgroundTintList(null);
         GradientDrawable shape = new GradientDrawable();
         shape.setColor(primary ? YELLOW : PANEL);
-        shape.setCornerRadius(dp(button.getContext(), 16));
+        shape.setCornerRadius(dp(button.getContext(), primary ? 7 : 10));
+        shape.setStroke(dp(button.getContext(), primary ? 2 : 1), primary ? INK : 0x99FFFFFF);
         button.setBackground(new RippleDrawable(ColorStateList.valueOf(0x33FFFFFF), shape, null));
         button.setTextColor(new ColorStateList(
                 new int[][] {new int[] {-android.R.attr.state_enabled}, new int[] {}},

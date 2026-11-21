@@ -24,6 +24,8 @@ import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -78,9 +80,16 @@ public class Launcher extends Activity {
 
     final List<Option> options = new ArrayList<>();
     final Map<String, Boolean> drawerStates = new LinkedHashMap<>();
+    final Map<String, View> sectionCards = new LinkedHashMap<>();
+    final Map<String, LinearLayout> sectionBodies = new LinkedHashMap<>();
+    final Map<String, Button> sectionHeaders = new LinkedHashMap<>();
+    final Map<String, Button> navButtons = new LinkedHashMap<>();
     final Map<String, String> config = new LinkedHashMap<>();
     TextView status;
     Button play;
+    ScrollView launcherScroll;
+    P4gBackgroundView backgroundScene;
+    String selectedNav = "home";
     static final int PICK_ZIP = 1, PICK_FOLDER = 2, PICK_GAME = 3, PICK_KEYS = 4, PREPARE = 6, PICK_CPK = 7,
             PICK_DRIVER = 8, PICK_UPDATE = 9;
 
@@ -298,9 +307,9 @@ public class Launcher extends Activity {
                 new String[] {"360p", "480p", "720p", "1080p"},
                 new String[] {"360p", "480p", "720p", "1080p"}, 2));
         options.add(new Option("NX_STRETCH", "Formato da tela", "Screen format",
-                new String[] {"0", "16:10", "1"},
-                new String[] {"16:9", "16:10", "Esticar"},
-                new String[] {"16:9", "16:10", "Stretch"}, 0));
+                new String[] {"0", "hor+", "16:10", "1"},
+                new String[] {"16:9", "HOR+", "16:10", "Esticar"},
+                new String[] {"16:9", "HOR+", "16:10", "Stretch"}, 0));
         options.add(new Option("NX_FPS_CAP", "Limite de FPS", "FPS limit", new String[] {"30", "45", "60"},
                 new String[] {"30 FPS", "45 FPS", "60 FPS"},
                 new String[] {"30 FPS", "45 FPS", "60 FPS"}, 0));
@@ -310,6 +319,9 @@ public class Launcher extends Activity {
                         "8x (mais qualidade)", "16x (qualidade máxima)"},
                 new String[] {"Off (best performance)", "2x (faster)", "4x (default)",
                         "8x (higher quality)", "16x (best quality)"}, 2));
+        options.add(new Option("NX_FSR", "Escalado FSR", "FSR upscaling",
+                new String[] {"0", "1"}, new String[] {"Desativado", "Ativado"},
+                new String[] {"Off", "On"}, 0));
         options.add(new Option("NX_OVERLAY_SIZE", "Tamanho do overlay", "Overlay size",
                 new String[] {"50", "80", "100", "125", "150"},
                 new String[] {"50%", "80%", "100% (padrão)", "125%", "150%"},
@@ -345,12 +357,18 @@ public class Launcher extends Activity {
                 new String[] {"50", "75", "100", "125", "150", "200", "250"},
                 new String[] {"50%", "75%", "100%", "125%", "150%", "200%", "250%"},
                 new String[] {"50%", "75%", "100%", "125%", "150%", "200%", "250%"}, 2));
+        options.add(new Option("P4G_LAUNCHER_CRT", "Estática CRT del launcher", "Launcher CRT static",
+                new String[] {"1", "0"}, new String[] {"Activada", "Desactivada"}, new String[] {"On", "Off"}, 0));
+        options.add(new Option("P4G_LAUNCHER_CRT_INTENSITY", "Intensidad de la estática", "Static intensity",
+                new String[] {"20", "42", "72"}, new String[] {"Suave", "Media", "Alta"},
+                new String[] {"Low", "Medium", "High"}, 1));
         build(false);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        if (backgroundScene != null) backgroundScene.setAnimating(true);
         Intent intent = getIntent();
         if (intent.hasExtra("game_error") || (launchedGame && !intent.getBooleanExtra("returned_to_menu", false)))
             installedCheck = new InstalledGameFiles.RecentCheck();
@@ -358,6 +376,11 @@ public class Launcher extends Activity {
         intent.removeExtra("returned_to_menu");
         refresh();
         showGameError(intent);
+    }
+
+    @Override protected void onPause() {
+        if (backgroundScene != null) backgroundScene.setAnimating(false);
+        super.onPause();
     }
 
     @Override protected void onNewIntent(Intent intent) {
@@ -409,6 +432,7 @@ public class Launcher extends Activity {
         background.setColor(P4gTheme.PANEL);
         background.setCornerRadius(dp(14));
         card.setBackground(background);
+        sectionCards.put(key, card);
         LinearLayout.LayoutParams spacing = new LinearLayout.LayoutParams(-1, -2);
         spacing.bottomMargin = dp(8);
         root.addView(card, spacing);
@@ -418,6 +442,7 @@ public class Launcher extends Activity {
         header.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         header.setTextSize(15);
         card.addView(header, new LinearLayout.LayoutParams(-1, -2));
+        sectionHeaders.put(key, header);
         LinearLayout body = new LinearLayout(this);
         body.setOrientation(LinearLayout.VERTICAL);
         body.setPadding(dp(10), dp(4), dp(10), dp(8));
@@ -431,6 +456,7 @@ public class Launcher extends Activity {
         card.addView(body, new LinearLayout.LayoutParams(-1, -2));
         // Preserve expansion across refreshes and Activity recreation during this visit.
         body.setVisibility(open ? View.VISIBLE : View.GONE);
+        sectionBodies.put(key, body);
         header.setText((open ? "−  " : "+  ") + title);
         header.setContentDescription(title + (open ? ", collapse" : ", expand"));
         header.setOnClickListener(v -> {
@@ -472,9 +498,16 @@ public class Launcher extends Activity {
     }
 
     void build(boolean ready) {
+        sectionCards.clear();
+        sectionBodies.clear();
+        sectionHeaders.clear();
+        navButtons.clear();
+        selectedNav = "home";
+        launcherScroll = null;
+        backgroundScene = null;
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(P4gTheme.BACKGROUND);
+        root.setBackgroundColor(ready ? Color.TRANSPARENT : P4gTheme.BACKGROUND);
         root.setPadding(dp(18), dp(10), dp(18), dp(14));
 
         TextView title = new TextView(this);
@@ -544,7 +577,7 @@ public class Launcher extends Activity {
         play = new Button(this);
         play.setTextSize(18);
         P4gTheme.button(play, true);
-        play.setText(t("Jogar", "Play"));
+        play.setText("¡JUGAR!");
         LinearLayout.LayoutParams playLayout = new LinearLayout.LayoutParams(-1, dp(54));
         playLayout.leftMargin = dp(18);
         playLayout.rightMargin = dp(18);
@@ -554,9 +587,9 @@ public class Launcher extends Activity {
         LinearLayout quick = settingsGroup(root, "display", t("Tela e gráficos", "Display and graphics"), "", false);
         LinearLayout controls = settingsGroup(root, "controls", t("Controles", "Controls"), "", false);
         LinearLayout content = settingsGroup(root, "content", t("Jogo, saves e mods", "Game, saves and mods"), "", false);
-        addLauncherSettings(root);
         LinearLayout overlay = settingsGroup(root, "overlay", t("Monitor de desempenho", "Performance monitor"), "", false);
         LinearLayout support = settingsGroup(root, "more", t("Mais opções", "More options"), "", false);
+        addLauncherSettings(support);
         addRow(quick, t("Predefinição gráfica", "Graphics preset"), t("Escolher", "Choose"), v ->
                 new P4gDialog.Builder(this).setTitle(t("Predefinição gráfica", "Graphics preset"))
                         .setItems(new String[] {t("Desempenho", "Performance"), t("Equilibrado", "Balanced"), t("Qualidade", "Quality")},
@@ -675,6 +708,8 @@ public class Launcher extends Activity {
             }
         });
         controls.addView(edit);
+        addRow(controls, "Botones del mando", "Asignar", v ->
+                startActivity(new Intent(Launcher.this, GamepadEditorActivity.class)));
 
         // Keep the reset action as the final item in every settings section.
         addResetRow(quick, "quick");
@@ -759,16 +794,133 @@ public class Launcher extends Activity {
         addModsRow(content);
 
         ScrollView scroll = new ScrollView(this);
-        scroll.setBackgroundColor(P4gTheme.BACKGROUND);
+        scroll.setBackgroundColor(Color.TRANSPARENT);
         scroll.setFillViewport(true);
         scroll.addView(root);
+        launcherScroll = scroll;
+
+        FrameLayout scene = new FrameLayout(this);
+        backgroundScene = new P4gBackgroundView(this);
+        scene.addView(backgroundScene, new FrameLayout.LayoutParams(-1, -1));
         LinearLayout screen = new LinearLayout(this);
         screen.setOrientation(LinearLayout.VERTICAL);
-        screen.setBackgroundColor(P4gTheme.BACKGROUND);
-        screen.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-        screen.addView(play, playLayout);
-        setContentView(screen);
-        applySafeAreaInsets(screen);
+        screen.setBackgroundColor(Color.TRANSPARENT);
+        if (launcherLandscape()) {
+            LinearLayout body = new LinearLayout(this);
+            body.setOrientation(LinearLayout.HORIZONTAL);
+            LinearLayout nav = createNavigation(true);
+            body.addView(nav, new LinearLayout.LayoutParams(dp(174), -1));
+            LinearLayout page = new LinearLayout(this);
+            page.setOrientation(LinearLayout.VERTICAL);
+            page.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+            page.addView(play, playLayout);
+            body.addView(page, new LinearLayout.LayoutParams(0, -1, 1));
+            screen.addView(body, new LinearLayout.LayoutParams(-1, -1));
+        } else {
+            screen.addView(createNavigation(false), new LinearLayout.LayoutParams(-1, dp(58)));
+            screen.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+            screen.addView(play, playLayout);
+        }
+        scene.addView(screen, new FrameLayout.LayoutParams(-1, -1));
+        setContentView(scene);
+        backgroundScene.setAnimating(true);
+        applySafeAreaInsets(scene);
+        navigateTo("home");
+        updateBackgroundEffect();
+    }
+
+    private void updateBackgroundEffect() {
+        if (backgroundScene == null) return;
+        boolean enabled = true;
+        int intensity = 42;
+        for (Option option : options) {
+            if ("P4G_LAUNCHER_CRT".equals(option.key)) enabled = "1".equals(option.values[option.pick]);
+            else if ("P4G_LAUNCHER_CRT_INTENSITY".equals(option.key)) {
+                try { intensity = Integer.parseInt(option.values[option.pick]); }
+                catch (NumberFormatException ignored) { intensity = 42; }
+            }
+        }
+        backgroundScene.setStaticEffect(enabled, intensity);
+    }
+
+    private LinearLayout createNavigation(boolean vertical) {
+        LinearLayout nav = new LinearLayout(this);
+        nav.setOrientation(vertical ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
+        nav.setGravity(vertical ? Gravity.TOP : Gravity.CENTER_VERTICAL);
+        nav.setPadding(dp(8), dp(8), dp(8), dp(8));
+        nav.setBackgroundColor(0xD91B1711);
+        if (vertical) {
+            TextView brand = new TextView(this);
+            brand.setText("PERSONA 4\nGOLDEN");
+            brand.setTextColor(Color.WHITE);
+            brand.setTextSize(19);
+            brand.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
+            brand.setPadding(dp(8), dp(12), dp(8), dp(20));
+            nav.addView(brand, new LinearLayout.LayoutParams(-1, -2));
+        }
+        addNavigationButton(nav, "home", "JUGAR", vertical);
+        addNavigationButton(nav, "display", "PANTALLA", vertical);
+        addNavigationButton(nav, "overlay", "RENDIMIENTO", vertical);
+        addNavigationButton(nav, "controls", "CONTROLES", vertical);
+        addNavigationButton(nav, "content", "ARCHIVOS", vertical);
+        addNavigationButton(nav, "more", "CRÉDITOS", vertical);
+        if (!vertical) {
+            HorizontalScrollView horizontal = new HorizontalScrollView(this);
+            horizontal.setHorizontalScrollBarEnabled(false);
+            horizontal.addView(nav, new HorizontalScrollView.LayoutParams(-2, -1));
+            return new NavigationHost(this, horizontal);
+        }
+        return nav;
+    }
+
+    private void addNavigationButton(LinearLayout nav, String key, String label, boolean vertical) {
+        Button button = new Button(this);
+        P4gTheme.button(button, key.equals(selectedNav));
+        button.setText(label);
+        button.setTextSize(vertical ? 13 : 12);
+        button.setGravity(vertical ? Gravity.START | Gravity.CENTER_VERTICAL : Gravity.CENTER);
+        button.setPadding(dp(10), dp(6), dp(10), dp(6));
+        button.setMinHeight(dp(vertical ? 48 : 42));
+        button.setOnClickListener(v -> navigateTo(key));
+        LinearLayout.LayoutParams params = vertical
+                ? new LinearLayout.LayoutParams(-1, -2)
+                : new LinearLayout.LayoutParams(-2, -1);
+        if (vertical) params.bottomMargin = dp(4);
+        else params.rightMargin = dp(4);
+        nav.addView(button, params);
+        navButtons.put(key, button);
+    }
+
+    private void navigateTo(String key) {
+        selectedNav = key;
+        for (Map.Entry<String, Button> entry : navButtons.entrySet()) {
+            Button button = entry.getValue();
+            P4gTheme.button(button, entry.getKey().equals(key));
+        }
+        if (launcherScroll == null) return;
+        if ("home".equals(key)) {
+            launcherScroll.smoothScrollTo(0, 0);
+            return;
+        }
+        String group = key;
+        View target = sectionCards.get(group);
+        LinearLayout body = sectionBodies.get(group);
+        Button header = sectionHeaders.get(group);
+        if (body != null && body.getVisibility() != View.VISIBLE) {
+            body.setVisibility(View.VISIBLE);
+            drawerStates.put(group, true);
+            if (header != null) header.setText("−  " + header.getText().toString().replaceFirst("^[+−]  ", ""));
+        }
+        if (target != null) launcherScroll.post(() -> launcherScroll.smoothScrollTo(0, target.getTop()));
+    }
+
+    /** Keeps the portrait navigation scrollable without a second navigation implementation. */
+    private static final class NavigationHost extends LinearLayout {
+        NavigationHost(Context context, HorizontalScrollView content) {
+            super(context);
+            setOrientation(VERTICAL);
+            addView(content, new LinearLayout.LayoutParams(-1, -1));
+        }
     }
 
     boolean installingShaders;
@@ -776,7 +928,7 @@ public class Launcher extends Activity {
     static String optionGroup(String key) {
         if (key.equals("NX_TRACE_PERF")) return "logs";
         if (key.equals("NX_SHOW_FPS") || key.startsWith("NX_OVERLAY_")) return "overlay";
-        if (key.equals("NX_GAMEPAD_LAYOUT") || key.startsWith("NX_TOUCH_") || key.equals("NX_STICK_SENSITIVITY") || key.equals("NX_CAMERA_SENSITIVITY")) return "controls";
+        if (key.equals("NX_GAMEPAD_LAYOUT") || key.equals("NX_GAMEPAD_MAP") || key.startsWith("NX_TOUCH_") || key.equals("NX_STICK_SENSITIVITY") || key.equals("NX_CAMERA_SENSITIVITY")) return "controls";
         return "quick";
     }
 
@@ -1275,7 +1427,10 @@ public class Launcher extends Activity {
         for (Option o : options) config.put(o.key, o.values[o.pick]);
         putResolution(config, config.get("RESOLUTION"));
         removeRetiredSettings(config);
-        if (writeConfig(new File(dataDir(), "config.txt"), config)) return true;
+        if (writeConfig(new File(dataDir(), "config.txt"), config)) {
+            updateBackgroundEffect();
+            return true;
+        }
         tell(t("Erro ao salvar", "Could not save"), t("Verifique o espaço livre e a permissão de armazenamento.",
                 "Check free space and storage permission."));
         load();
