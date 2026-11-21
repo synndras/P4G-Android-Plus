@@ -76,6 +76,9 @@ std::condition_variable g_window_ready;
 std::atomic<ANativeWindow*> g_window{nullptr};
 std::atomic<uint64_t> g_window_gen{0};  // bumped for every new window
 std::atomic<bool> g_visible{false};
+std::mutex g_pause_lock;
+std::condition_variable g_resume_ready;
+std::atomic<bool> g_app_paused{false};
 }  // namespace
 
 // ---- memory ---------------------------------------------------------------------------------------------------
@@ -324,7 +327,13 @@ uint64_t window_generation() { return g_window_gen; }
 
 ANativeWindow* android_window() { return g_window.load(); }  // platform_android.h
 
-bool window_minimized() { return !g_visible || !g_window; }
+bool window_minimized() { return g_app_paused || !g_visible || !g_window; }
+
+void wait_until_unpaused() {
+    if (!g_app_paused.load(std::memory_order_acquire)) return;
+    std::unique_lock lock(g_pause_lock);
+    g_resume_ready.wait(lock, [] { return !g_app_paused.load(std::memory_order_acquire); });
+}
 
 void screen_size(uint32_t& w, uint32_t& h) {
     ANativeWindow* win = static_cast<ANativeWindow*>(create_window());
@@ -724,9 +733,12 @@ void on_cmd(android_app* app, int32_t cmd) {
             break;
         case APP_CMD_PAUSE:  // home, app switcher, screen off: the game holds (no window), so does its sound
             clear_touch_input();
+            g_app_paused.store(true, std::memory_order_release);
             audio_pause(true);
             break;
         case APP_CMD_RESUME:
+            g_app_paused.store(false, std::memory_order_release);
+            g_resume_ready.notify_all();
             audio_pause(false);
             break;
     }

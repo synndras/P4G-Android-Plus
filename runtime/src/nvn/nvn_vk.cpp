@@ -766,6 +766,11 @@ void present_headless(uint64_t texture) {
 uint64_t picture_latency_ns() { return g_picture_latency.load(std::memory_order_relaxed); }
 
 void gpu_present(uint64_t texture, const int32_t* crop, uint64_t origin_ns) {
+#ifdef __ANDROID__
+    // Stop guest-frame progress while an Android Activity (pause menu, app switcher) owns focus.
+    // APP_CMD_RESUME releases this gate without rebuilding the live game state.
+    plat::wait_until_unpaused();
+#endif
     plat::perf_hint_thread();  // the thread that presents takes part in the frame (perf_hint.cpp)
     std::lock_guard lk(g_gpu);
     PresentTimer timer;

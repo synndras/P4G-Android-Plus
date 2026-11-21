@@ -67,6 +67,9 @@ inline void* create_window(uint64_t& generation) {
 }
 #endif
 bool window_minimized();     // no surface to draw to (minimized / app in background)
+#ifdef __ANDROID__
+void wait_until_unpaused();  // frame-boundary gate for a foreground Android overlay (e.g. the pause menu)
+#endif
 void window_size(uint32_t& w, uint32_t& h);  // client size in pixels
 void screen_size(uint32_t& w, uint32_t& h);  // the display's own size, landscape (Android; the window on PC)
 // The render scale to use when the player sets none: 1 on fast GPUs, less on slower ones (Android).
