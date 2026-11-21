@@ -584,12 +584,8 @@ public class Launcher extends Activity {
         status = new TextView(this);
 
         play = new P4gPlayButton(this);
-        play.setTextSize(28);
+        play.setTextSize(26);
         play.setText("¡JUGAR!");
-        LinearLayout.LayoutParams playLayout = new LinearLayout.LayoutParams(-1, dp(72));
-        playLayout.leftMargin = dp(12);
-        playLayout.rightMargin = dp(12);
-        playLayout.bottomMargin = dp(8);
         play.setOnClickListener(v -> installShadersAndPlay());
 
         LinearLayout quick = settingsGroup(root, "display", t("Tela e gráficos", "Display and graphics"), "", false);
@@ -822,37 +818,21 @@ public class Launcher extends Activity {
         backgroundScene = new P4gBackgroundView(this);
         scene.addView(backgroundScene, new FrameLayout.LayoutParams(-1, -1));
         LinearLayout screen = new LinearLayout(this);
-        screen.setOrientation(LinearLayout.VERTICAL);
+        boolean landscape = launcherLandscape();
+        screen.setOrientation(landscape ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
         screen.setBackgroundColor(Color.TRANSPARENT);
-        screen.addView(buildTopBar(), new LinearLayout.LayoutParams(-1, dp(86)));
-        LinearLayout.LayoutParams mainSlot = new LinearLayout.LayoutParams(-1, 0, 1);
-        if (launcherLandscape()) {
-            LinearLayout body = new LinearLayout(this);
-            body.setOrientation(LinearLayout.HORIZONTAL);
-            LinearLayout nav = createNavigation(true);
-            body.addView(nav, new LinearLayout.LayoutParams(dp(236), -1));
-            LinearLayout page = new LinearLayout(this);
-            page.setOrientation(LinearLayout.VERTICAL);
-            FrameLayout scrollFrame = new FrameLayout(this);
-            scrollRail = new P4gScrollRail(this);
-            scrollRail.attach(scroll);
-            FrameLayout.LayoutParams railLp = new FrameLayout.LayoutParams(dp(18), -1, Gravity.RIGHT | Gravity.CENTER_VERTICAL);
-            scrollFrame.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
-            scrollFrame.addView(scrollRail, railLp);
-            page.addView(scrollFrame, new LinearLayout.LayoutParams(-1, 0, 1));
-            body.addView(page, new LinearLayout.LayoutParams(0, -1, 1));
-            screen.addView(body, mainSlot);
+        if (landscape) {
+            screen.addView(createNavigation(true), new LinearLayout.LayoutParams(0, -1, 1f));
+            LinearLayout page = buildMainPage(scroll);
+            screen.addView(page, new LinearLayout.LayoutParams(0, -1, 3f));
         } else {
-            screen.addView(createNavigation(false), new LinearLayout.LayoutParams(-1, dp(56)));
-            FrameLayout scrollFrame = new FrameLayout(this);
-            scrollRail = new P4gScrollRail(this);
-            scrollRail.attach(scroll);
-            scrollFrame.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
-            scrollFrame.addView(scrollRail, new FrameLayout.LayoutParams(dp(18), -1, Gravity.RIGHT));
-            screen.addView(scrollFrame, mainSlot);
+            screen.setOrientation(LinearLayout.VERTICAL);
+            screen.addView(buildTopBar(true), new LinearLayout.LayoutParams(-1, dp(74)));
+            screen.addView(createNavigation(false), new LinearLayout.LayoutParams(-1, dp(52)));
+            FrameLayout scrollFrame = buildScrollFrame(scroll);
+            screen.addView(scrollFrame, new LinearLayout.LayoutParams(-1, 0, 1f));
+            screen.addView(buildActionBar(false), new LinearLayout.LayoutParams(-1, dp(82)));
         }
-        screen.addView(buildStatusPanel(), new LinearLayout.LayoutParams(-1, dp(62)));
-        screen.addView(play, playLayout);
         scene.addView(screen, new FrameLayout.LayoutParams(-1, -1));
         setContentView(scene);
         backgroundScene.setAnimating(true);
@@ -896,13 +876,33 @@ public class Launcher extends Activity {
         nav.setGravity(vertical ? Gravity.TOP : Gravity.CENTER_VERTICAL);
         nav.setPadding(dp(8), dp(8), dp(8), dp(8));
         nav.setBackground(new P4gNavBackdrop());
-        addNavigationButton(nav, "home", "JUGAR", vertical);
-        addNavigationButton(nav, "display", "PANTALLA", vertical);
-        addNavigationButton(nav, "overlay", "RENDIMIENTO", vertical);
-        addNavigationButton(nav, "controls", "CONTROLES", vertical);
-        addNavigationButton(nav, "content", "ARCHIVOS", vertical);
-        addNavigationButton(nav, "more", "CRÉDITOS", vertical);
-        if (!vertical) {
+        if (vertical) {
+            P4gLogoView logo = new P4gLogoView(this);
+            LinearLayout.LayoutParams logoParams = new LinearLayout.LayoutParams(-1, dp(78));
+            logoParams.bottomMargin = dp(5);
+            nav.addView(logo, logoParams);
+            LinearLayout options = new LinearLayout(this);
+            options.setOrientation(LinearLayout.VERTICAL);
+            options.setGravity(Gravity.CENTER_VERTICAL);
+            String[][] entries = { {"home", "JUGAR"}, {"display", "PANTALLA"}, {"overlay", "RENDIMIENTO"},
+                    {"controls", "CONTROLES"}, {"content", "ARCHIVOS"}, {"more", "CRÉDITOS"} };
+            for (String[] entry : entries) addNavigationButton(options, entry[0], entry[1], true);
+            nav.addView(options, new LinearLayout.LayoutParams(-1, 0, 1f));
+            TextView version = new TextView(this);
+            version.setText("P4GP · BETA 0.5.4");
+            version.setTextColor(Color.WHITE);
+            version.setTextSize(10);
+            version.setTypeface(Typeface.DEFAULT_BOLD);
+            version.setGravity(Gravity.CENTER);
+            version.setSingleLine(true);
+            nav.addView(version, new LinearLayout.LayoutParams(-1, dp(20)));
+        } else {
+            addNavigationButton(nav, "home", "JUGAR", false);
+            addNavigationButton(nav, "display", "PANTALLA", false);
+            addNavigationButton(nav, "overlay", "RENDIMIENTO", false);
+            addNavigationButton(nav, "controls", "CONTROLES", false);
+            addNavigationButton(nav, "content", "ARCHIVOS", false);
+            addNavigationButton(nav, "more", "CRÉDITOS", false);
             HorizontalScrollView horizontal = new HorizontalScrollView(this);
             horizontal.setHorizontalScrollBarEnabled(false);
             horizontal.addView(nav, new HorizontalScrollView.LayoutParams(-2, -1));
@@ -911,19 +911,53 @@ public class Launcher extends Activity {
         return nav;
     }
 
+    private LinearLayout buildMainPage(ScrollView scroll) {
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        page.setBackgroundColor(Color.TRANSPARENT);
+        page.addView(buildTopBar(false), new LinearLayout.LayoutParams(-1, dp(58)));
+        page.addView(buildScrollFrame(scroll), new LinearLayout.LayoutParams(-1, 0, 1f));
+        page.addView(buildActionBar(true), new LinearLayout.LayoutParams(-1, dp(80)));
+        return page;
+    }
+
+    private FrameLayout buildScrollFrame(ScrollView scroll) {
+        FrameLayout frame = new FrameLayout(this);
+        scrollRail = new P4gScrollRail(this);
+        scrollRail.attach(scroll);
+        frame.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
+        frame.addView(scrollRail, new FrameLayout.LayoutParams(dp(16), -1, Gravity.RIGHT));
+        return frame;
+    }
+
+    private LinearLayout buildActionBar(boolean landscape) {
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(Gravity.CENTER_VERTICAL);
+        actions.setPadding(dp(12), dp(5), dp(12), dp(5));
+        View panel = buildStatusPanel();
+        LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(0, dp(66), landscape ? 45f : 1f);
+        statusParams.rightMargin = dp(8);
+        actions.addView(panel, statusParams);
+        LinearLayout.LayoutParams playParams = new LinearLayout.LayoutParams(0, dp(66), landscape ? 40f : 1f);
+        actions.addView(play, playParams);
+        if (landscape) actions.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 15f));
+        return actions;
+    }
+
     private void addNavigationButton(LinearLayout nav, String key, String label, boolean vertical) {
         P4gMenuButton button = new P4gMenuButton(this);
         button.setArtSelected(key.equals(selectedNav));
         button.setText(label);
         button.setContentDescription(label);
-        button.setTextSize(vertical ? 19 : 15);
+        button.setTextSize(vertical ? 15 : 13);
         button.setGravity(vertical ? Gravity.START | Gravity.CENTER_VERTICAL : Gravity.CENTER);
-        button.setMinHeight(dp(vertical ? 52 : 44));
+        button.setMinHeight(dp(vertical ? 34 : 38));
         button.setOnClickListener(v -> navigateTo(key));
         LinearLayout.LayoutParams params = vertical
-                ? new LinearLayout.LayoutParams(-1, dp(52))
+                ? new LinearLayout.LayoutParams(-1, 0, 1f)
                 : new LinearLayout.LayoutParams(dp(132), -1);
-        if (vertical) params.bottomMargin = dp(4);
+        if (vertical) params.bottomMargin = dp(3);
         else params.rightMargin = dp(4);
         nav.addView(button, params);
         navButtons.put(key, button);
@@ -959,12 +993,14 @@ public class Launcher extends Activity {
         if (scrollRail != null) scrollRail.invalidate();
     }
 
-    private View buildTopBar() {
+    private View buildTopBar(boolean showLogo) {
         LinearLayout bar = new LinearLayout(this);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         bar.setPadding(dp(8), dp(5), dp(8), dp(5));
-        P4gLogoView logo = new P4gLogoView(this);
-        bar.addView(logo, new LinearLayout.LayoutParams(dp(250), -1));
+        if (showLogo) {
+            P4gLogoView logo = new P4gLogoView(this);
+            bar.addView(logo, new LinearLayout.LayoutParams(dp(250), -1));
+        }
         HorizontalScrollView chips = new HorizontalScrollView(this);
         chips.setHorizontalScrollBarEnabled(false);
         LinearLayout row = new LinearLayout(this);
@@ -981,8 +1017,8 @@ public class Launcher extends Activity {
             chip.setActive("1".equals(option.values[option.pick]) || "60".equals(option.values[option.pick])
                     || "hor+".equalsIgnoreCase(option.values[option.pick]));
             chip.setContentDescription(t(option.pt + ": " + label(option), option.en + ": " + label(option)));
-            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(dp(106), dp(42));
-            cp.leftMargin = dp(4); cp.rightMargin = dp(4);
+            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(dp(88), dp(34));
+            cp.leftMargin = dp(3); cp.rightMargin = dp(3);
             row.addView(chip, cp);
             quickButtons.put(option.key, chip);
             chip.setOnClickListener(v -> showOptionPicker(option));
@@ -990,8 +1026,8 @@ public class Launcher extends Activity {
         P4gQuickButton logs = new P4gQuickButton(this);
         logs.setText("LOGS EXPORT");
         logs.setActive(false);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(118), dp(42));
-        lp.leftMargin = dp(4); lp.rightMargin = dp(4);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(98), dp(34));
+        lp.leftMargin = dp(3); lp.rightMargin = dp(3);
         row.addView(logs, lp);
         logs.setOnClickListener(v -> exportLogs());
         chips.addView(row, new HorizontalScrollView.LayoutParams(-2, -1));
@@ -1028,12 +1064,14 @@ public class Launcher extends Activity {
         tv.setTypeface(Typeface.DEFAULT_BOLD);
         tv.setPadding(dp(8), 0, dp(8), 0);
         panel.addView(tv);
-        TextView version = new TextView(this);
-        version.setText("P4GP · BETA 0.5.4");
-        version.setTextColor(Color.WHITE);
-        version.setTextSize(11);
-        version.setTypeface(Typeface.DEFAULT_BOLD);
-        panel.addView(version);
+        if (!launcherLandscape()) {
+            TextView version = new TextView(this);
+            version.setText("P4GP · BETA 0.5.4");
+            version.setTextColor(Color.WHITE);
+            version.setTextSize(10);
+            version.setTypeface(Typeface.DEFAULT_BOLD);
+            panel.addView(version);
+        }
         return panel;
     }
 
