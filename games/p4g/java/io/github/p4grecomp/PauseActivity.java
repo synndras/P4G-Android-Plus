@@ -427,7 +427,7 @@ public final class PauseActivity extends Activity {
         TextView value = text("", 14, P4gTheme.INK, true);
         value.setGravity(Gravity.CENTER_VERTICAL | Gravity.END);
         row.addView(value, new LinearLayout.LayoutParams(dp(58), dp(30)));
-        outer.addView(row, new LinearLayout.LayoutParams(-1, dp(32)));
+        outer.addView(row, new LinearLayout.LayoutParams(-1, dp(40)));
 
         P4gPauseSeekBar seek = new P4gPauseSeekBar(this);
         int steps = (max - min) / step;
@@ -438,7 +438,7 @@ public final class PauseActivity extends Activity {
         SliderSpec spec = new SliderSpec(key, min, step, suffix, value);
         sliders.put(seek, spec);
         value.setText(current + suffix);
-        outer.addView(seek, new LinearLayout.LayoutParams(-1, dp(32)));
+        outer.addView(seek, new LinearLayout.LayoutParams(-1, dp(30)));
         registerControl(seek);
         seek.setOnFocusChangeListener((v, focused) -> {
             if (focused) selectedControl = activeControls.indexOf(seek);
