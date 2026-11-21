@@ -42,6 +42,8 @@ import java.nio.charset.StandardCharsets;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -49,6 +51,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /** Routes to preparation or the main menu after checking the actual files. */
 public class Launcher extends Activity {
@@ -88,6 +92,9 @@ public class Launcher extends Activity {
     final Map<String, String> config = new LinkedHashMap<>();
     TextView status;
     Button play;
+    P4gQuickButton updateNotice;
+    String updateReleaseUrl;
+    int updateCheckGeneration;
     ScrollView launcherScroll;
     P4gBackgroundView backgroundScene;
     View homePanel;
@@ -500,6 +507,9 @@ public class Launcher extends Activity {
     }
 
     void build(boolean ready) {
+        updateCheckGeneration++;
+        updateNotice = null;
+        updateReleaseUrl = null;
         sectionCards.clear();
         sectionBodies.clear();
         sectionHeaders.clear();
@@ -839,6 +849,7 @@ public class Launcher extends Activity {
         applySafeAreaInsets(scene);
         navigateTo("home");
         updateBackgroundEffect();
+        if (ready && updateNotice != null) checkForUpdates();
     }
 
     private void updateBackgroundEffect() {
@@ -939,10 +950,106 @@ public class Launcher extends Activity {
         LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(0, dp(66), landscape ? 45f : 1f);
         statusParams.rightMargin = dp(8);
         actions.addView(panel, statusParams);
+        FrameLayout playFrame = new FrameLayout(this);
+        playFrame.setClipChildren(false);
+        playFrame.addView(play, new FrameLayout.LayoutParams(-1, dp(66), Gravity.BOTTOM));
+        updateNotice = new P4gQuickButton(this);
+        updateNotice.setTextSize(11);
+        updateNotice.setActive(true);
+        updateNotice.setText(t("NUEVA VERSIÓN", "NEW UPDATE"));
+        updateNotice.setContentDescription(t("Hay una nueva versión disponible", "A new version is available"));
+        updateNotice.setVisibility(View.GONE);
+        FrameLayout.LayoutParams noticeParams = new FrameLayout.LayoutParams(dp(176), dp(28), Gravity.RIGHT | Gravity.TOP);
+        playFrame.addView(updateNotice, noticeParams);
+        updateNotice.setOnClickListener(v -> openExternal(updateReleaseUrl == null
+                ? "https://github.com/synndras/P4G-Android-Plus/releases" : updateReleaseUrl));
         LinearLayout.LayoutParams playParams = new LinearLayout.LayoutParams(0, dp(66), landscape ? 40f : 1f);
-        actions.addView(play, playParams);
+        actions.addView(playFrame, playParams);
         if (landscape) actions.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 15f));
         return actions;
+    }
+
+    private void checkForUpdates() {
+        final int request = ++updateCheckGeneration;
+        final String installedVersion;
+        try {
+            installedVersion = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (Exception e) {
+            return;
+        }
+        new Thread(() -> {
+            String latestVersion = null;
+            String latestUrl = null;
+            HttpURLConnection connection = null;
+            try {
+                connection = (HttpURLConnection) new URL(
+                        "https://api.github.com/repos/synndras/P4G-Android-Plus/releases").openConnection();
+                connection.setRequestMethod("GET");
+                connection.setRequestProperty("Accept", "application/vnd.github+json");
+                connection.setRequestProperty("User-Agent", "P4GP-Android-Launcher");
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+                if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                    try (InputStream stream = connection.getInputStream();
+                         java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream()) {
+                        byte[] buffer = new byte[2048];
+                        int count;
+                        while ((count = stream.read(buffer)) != -1) bytes.write(buffer, 0, count);
+                        JSONArray releases = new JSONArray(new String(bytes.toByteArray(), StandardCharsets.UTF_8));
+                        for (int i = 0; i < releases.length(); i++) {
+                            JSONObject release = releases.optJSONObject(i);
+                            if (release == null || release.optBoolean("draft", false)) continue;
+                            String candidate = release.optString("tag_name", "");
+                            if (candidate.isEmpty()) continue;
+                            if (latestVersion == null || compareVersions(candidate, latestVersion) > 0) {
+                                latestVersion = candidate;
+                                latestUrl = release.optString("html_url", "");
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ignored) {
+                // Keep the launcher quiet when offline or when GitHub cannot be reached.
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+            final String releaseVersion = latestVersion;
+            final String releaseUrl = latestUrl;
+            runOnUiThread(() -> {
+                if (request != updateCheckGeneration || updateNotice == null || isFinishing() || isDestroyed()) return;
+                if (releaseVersion == null || compareVersions(releaseVersion, installedVersion) <= 0) return;
+                updateReleaseUrl = releaseUrl;
+                updateNotice.setText(t("NUEVA VERSIÓN · " + releaseVersion, "NEW UPDATE · " + releaseVersion));
+                updateNotice.setContentDescription(t("Actualizar a " + releaseVersion,
+                        "Update to " + releaseVersion));
+                updateNotice.setVisibility(View.VISIBLE);
+            });
+        }, "P4GP-update-check").start();
+    }
+
+    private static int compareVersions(String first, String second) {
+        String a = first == null ? "" : first.replaceFirst("^[vV]", "");
+        String b = second == null ? "" : second.replaceFirst("^[vV]", "");
+        String[] aParts = a.split("-", 2);
+        String[] bParts = b.split("-", 2);
+        String[] aNumbers = aParts[0].split("\\.");
+        String[] bNumbers = bParts[0].split("\\.");
+        for (int i = 0; i < Math.max(aNumbers.length, bNumbers.length); i++) {
+            int av = i < aNumbers.length ? leadingNumber(aNumbers[i]) : 0;
+            int bv = i < bNumbers.length ? leadingNumber(bNumbers[i]) : 0;
+            if (av != bv) return av < bv ? -1 : 1;
+        }
+        boolean aPre = aParts.length > 1 && !aParts[1].isEmpty();
+        boolean bPre = bParts.length > 1 && !bParts[1].isEmpty();
+        if (aPre != bPre) return aPre ? -1 : 1;
+        return aPre ? aParts[1].compareToIgnoreCase(bParts[1]) : 0;
+    }
+
+    private static int leadingNumber(String value) {
+        int end = 0;
+        while (end < value.length() && Character.isDigit(value.charAt(end))) end++;
+        try { return end == 0 ? 0 : Integer.parseInt(value.substring(0, end)); }
+        catch (NumberFormatException ignored) { return 0; }
     }
 
     private void addNavigationButton(LinearLayout nav, String key, String label, boolean vertical) {
