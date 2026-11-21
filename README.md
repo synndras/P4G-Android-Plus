@@ -1,13 +1,13 @@
-# P4G — Persona 4 Golden for Android
+# P4GP — Persona 4 Golden for Android
 
-**0.5.2 Beta** · ARM64 · Vulkan · Multilingual app interface
+**0.5.4 Beta** · ARM64 · Vulkan · Multilingual app interface
 
-P4G is an unofficial Android port of the Nintendo Switch version of **Persona 4 Golden**. It uses native ARM64 execution and a compatibility runtime that translates the game's NVN graphics commands to Vulkan.
+P4GP is an unofficial Android port of the Nintendo Switch version of **Persona 4 Golden**. It uses native ARM64 execution and a compatibility runtime that translates the game's NVN graphics commands to Vulkan.
 
 Game preparation runs directly on the phone. Select your own game dump and keys, prepare the game, and launch it from the main menu.
 
 Discord:https://discord.gg/yF6FtNK6rM
-[Downloads](https://github.com/nxdevxz/p4g-android/releases) · [Builds](https://github.com/nxdevxz/p4g-android/actions/workflows/build-p4g.yml) · [Report an issue](https://github.com/nxdevxz/p4g-android/issues)
+[Downloads](https://github.com/synndras/P4G-Android-Plus/releases) · [Builds](https://github.com/synndras/P4G-Android-Plus/actions/workflows/build-p4g.yml) · [Report an issue](https://github.com/synndras/P4G-Android-Plus/issues)
 
 ## Current status
 
@@ -43,8 +43,8 @@ The runtime accepts the base game (1.0.0, Build ID `C433D980688380A6`) and the o
 
 ## Installation and first launch
 
-1. Download **P4G.apk** from a published release or a completed GitHub Actions build.
-2. Install the APK and open **P4G**.
+1. Download **P4GP.apk** from a published release or a completed GitHub Actions build.
+2. Install the APK and open **P4GP**. Its package ID is `io.github.synndras.p4gp`, so it can coexist with the original P4G package.
 3. Grant the requested file access permission.
 4. Select the base game's **NSP/XCI** file, your **prod.keys** file and, optionally, the official update **NSP**.
 5. Choose **Install in Android/data** or **Run from NSP/XCI**, then tap **Prepare**.
@@ -54,7 +54,7 @@ Installed mode extracts the game and translates the shaders it can identify duri
 
 ### Updating
 
-Install the new APK over the existing installation using a build signed with the **same signing key**. The package name remains `io.github.p4grecomp`.
+Install updates to P4GP using a build signed with the **same P4GP signing key**. P4GP uses package ID `io.github.synndras.p4gp` and keeps separate app data from the original P4G package.
 
 Back up your saves before updating. If Android rejects the update, check that both APKs use the same signing key before uninstalling anything.
 
@@ -144,7 +144,7 @@ Do not attach game dumps or encryption keys to public bug reports.
 2. Configure the repository secrets `P4G_SIGNING_KEY_B64` and `P4G_SIGNING_PASSWORD` required by `.github/workflows/build-p4g.yml`.
 3. Open **Actions → P4G Beta → Run workflow**.
 4. Wait for a successful build.
-5. Download the **P4G-0.4.6-Beta** artifact and extract **P4G.apk**.
+5. Download the **P4GP-0.5.4-beta** artifact and extract **P4GP.apk**.
 
 The workflow builds the native runtime and preparation libraries, compiles the Java interface, runs the included checks and packages the APK. A successful build does not replace testing on an Android device.
 

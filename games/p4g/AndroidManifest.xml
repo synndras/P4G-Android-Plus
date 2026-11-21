@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- P4G launcher, preparation process, and isolated native game process. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="io.github.p4grecomp"
-    android:versionCode="25"
-    android:versionName="0.5.3-beta">
+    package="io.github.synndras.p4gp"
+    android:versionCode="26"
+    android:versionName="0.5.4-beta">
 
     <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="35" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
@@ -16,9 +16,9 @@
 
     <application
         android:enableOnBackInvokedCallback="false"
-        android:label="P4G"
-        android:icon="@mipmap/p4g_icon"
-        android:roundIcon="@mipmap/p4g_icon"
+        android:label="P4GP"
+        android:icon="@mipmap/p4gp_icon"
+        android:roundIcon="@mipmap/p4gp_icon"
         android:requestLegacyExternalStorage="true"
         android:hasCode="true"
         android:extractNativeLibs="true"
@@ -29,7 +29,7 @@
         android:theme="@style/Fullscreen">
         <!-- Home screen: data check, options (config.txt), then the game. -->
         <activity
-            android:name=".Launcher"
+            android:name="io.github.p4grecomp.Launcher"
             android:launchMode="singleTop"
             android:exported="true"
             android:theme="@android:style/Theme.Material.NoActionBar"
@@ -43,7 +43,7 @@
              libp4gshader.so, the shader translator). Its own process, so the translator's runtime never shares
              the game's. -->
         <activity
-            android:name=".ImportActivity"
+            android:name="io.github.p4grecomp.ImportActivity"
             android:exported="false"
             android:process=":import"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden"
@@ -52,14 +52,14 @@
             />
         <!-- Where the on-screen controls go (NX_TOUCH_LAYOUT), full screen like the game. -->
         <activity
-            android:name=".ControlsEditor"
+            android:name="io.github.p4grecomp.ControlsEditor"
             android:exported="false"
             android:theme="@style/Fullscreen"
             android:screenOrientation="sensorLandscape"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden" />
         <!-- Shares :game with the native runtime so a saved mapping can be applied when gameplay resumes. -->
         <activity
-            android:name=".GamepadEditorActivity"
+            android:name="io.github.p4grecomp.GamepadEditorActivity"
             android:process=":game"
             android:launchMode="singleTop"
             android:exported="false"
@@ -68,7 +68,7 @@
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode|density" />
         <!-- Isolated game process: native shutdown leaves the launcher alive. -->
         <activity
-            android:name=".GameActivity"
+            android:name="io.github.p4grecomp.GameActivity"
             android:process=":game"
             android:enableOnBackInvokedCallback="true"
             android:exported="false"
@@ -79,7 +79,7 @@
         </activity>
         <!-- Same isolated process as GameActivity: APP_CMD_PAUSE gates the native game frame loop. -->
         <activity
-            android:name=".PauseActivity"
+            android:name="io.github.p4grecomp.PauseActivity"
             android:process=":game"
             android:launchMode="singleTop"
             android:exported="false"

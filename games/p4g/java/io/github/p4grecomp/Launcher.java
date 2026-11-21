@@ -511,7 +511,7 @@ public class Launcher extends Activity {
         root.setPadding(dp(18), dp(10), dp(18), dp(14));
 
         TextView title = new TextView(this);
-        title.setText("Persona 4 Golden");
+        title.setText("P4GP · Persona 4 Golden");
         title.setTextColor(P4gTheme.YELLOW);
         title.setPadding(0, dp(4), 0, dp(2));
         title.setTextSize(25);
@@ -624,11 +624,11 @@ public class Launcher extends Activity {
         LinearLayout diagnostics = settingsGroup(support, "logs", t("Logs e diagnóstico", "Logs & diagnostics"), "", false);
         P4gTheme.section(support, t("Comunidade", "Community"));
         addRow(support, "GitHub", t("Abrir", "Open"),
-                v -> openExternal("https://github.com/nxdevxz/p4g-android"));
+                v -> openExternal("https://github.com/synndras/P4G-Android-Plus"));
         addRow(support, "Discord", t("Entrar", "Join"),
                 v -> openExternal("https://discord.gg/yF6FtNK6rM"));
         addRow(support, t("Reportar um problema", "Report an issue"), t("Abrir", "Open"),
-                v -> openExternal("https://github.com/nxdevxz/p4g-android/issues/new/choose"));
+                v -> openExternal("https://github.com/synndras/P4G-Android-Plus/issues/new/choose"));
         for (final Option o : options) {
             String group = optionGroup(o.key);
             if (isOverlayToggle(o.key)) {

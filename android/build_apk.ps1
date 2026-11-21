@@ -111,10 +111,11 @@ if ($Game -eq "p4g") {
 $apk.Dispose()
 
 & "$bt\zipalign.exe" -f -p 4 "$out\base.apk" "$out\aligned.apk"
+$apkName = if ($Game -eq "p4g") { "P4GP" } else { $Game }
 & "$bt\apksigner.bat" sign --ks "$env:USERPROFILE\.android\debug.keystore" --ks-pass pass:android --key-pass pass:android `
-    --out "$out\$Game.apk" "$out\aligned.apk"
+    --out "$out\$apkName.apk" "$out\aligned.apk"
 if ($LASTEXITCODE) { throw "apksigner failed" }
-$size = [math]::Round((Get-Item "$out\$Game.apk").Length / 1MB, 1)
-Write-Host "APK: $out\$Game.apk ($size MB)"
+$size = [math]::Round((Get-Item "$out\$apkName.apk").Length / 1MB, 1)
+Write-Host "APK: $out\$apkName.apk ($size MB)"
 
-if ($Install) { & "$sdk\platform-tools\adb.exe" install -r "$out\$Game.apk" }
+if ($Install) { & "$sdk\platform-tools\adb.exe" install -r "$out\$apkName.apk" }

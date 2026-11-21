@@ -1,0 +1,5 @@
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetLeft="8%" android:insetTop="8%"
+    android:insetRight="8%" android:insetBottom="8%">
+    <bitmap android:src="@drawable/p4gp_icon_image" android:gravity="fill" android:filter="true" />
+</inset>

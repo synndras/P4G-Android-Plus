@@ -391,11 +391,8 @@ jobs:
                           f"Duplicate APK entry: {dest}"
                       )
 
-                  method = (
-                      zipfile.ZIP_STORED
-                      if dest.startswith("lib/")
-                      else zipfile.ZIP_DEFLATED
-                  )
+                  # extractNativeLibs is enabled; compress libraries like the local APK builder.
+                  method = zipfile.ZIP_DEFLATED
 
                   z.write(
                       source_path,
@@ -504,14 +501,14 @@ jobs:
             --ks-type PKCS12 \
             --ks-pass env:P4G_SIGNING_PASSWORD \
             --key-pass env:P4G_SIGNING_PASSWORD \
-            --out "build-apk/P4G.apk" \
+            --out "build-apk/P4GP.apk" \
             build-apk/aligned.apk
 
           "$BUILD_TOOLS/apksigner" verify --verbose --print-certs \
-            "build-apk/P4G.apk"
-          test -s "build-apk/P4G.apk"
+            "build-apk/P4GP.apk"
+          test -s "build-apk/P4GP.apk"
 
-          APK_SIZE=$(stat -c '%s' "build-apk/P4G.apk")
+          APK_SIZE=$(stat -c '%s' "build-apk/P4GP.apk")
           MAX_APK_SIZE=$((16 * 1024 * 1024))
           echo "Release APK size: $APK_SIZE bytes (limit: $MAX_APK_SIZE)"
           if [ "$APK_SIZE" -gt "$MAX_APK_SIZE" ]; then
@@ -520,11 +517,11 @@ jobs:
           fi
 
 
-      - name: Upload P4G APK
+      - name: Upload P4GP APK
         uses: actions/upload-artifact@v4
         with:
-          name: P4G-0.5.2-Beta
-          path: build-apk/P4G.apk
+          name: P4GP-0.5.4-beta
+          path: build-apk/P4GP.apk
           if-no-files-found: error
 
       - name: Upload shader packaging diagnostics

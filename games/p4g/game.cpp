@@ -9,7 +9,7 @@ const game::Info game::kInfo = {
     "p4g",
     "Persona 4 Golden",
     0x010062B01525C000ull,
-    "io.github.p4grecomp",
+    "io.github.synndras.p4gp",
     "private/p4g",
     0,
     "C433D980688380A6"
