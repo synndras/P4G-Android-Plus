@@ -1017,7 +1017,8 @@ public class Launcher extends Activity {
             chip.setActive("1".equals(option.values[option.pick]) || "60".equals(option.values[option.pick])
                     || "hor+".equalsIgnoreCase(option.values[option.pick]));
             chip.setContentDescription(t(option.pt + ": " + label(option), option.en + ": " + label(option)));
-            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(dp(88), dp(34));
+            int chipWidth = "NX_STRETCH".equals(option.key) ? 106 : 88;
+            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(dp(chipWidth), dp(34));
             cp.leftMargin = dp(3); cp.rightMargin = dp(3);
             row.addView(chip, cp);
             quickButtons.put(option.key, chip);
