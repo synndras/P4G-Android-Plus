@@ -57,6 +57,15 @@
             android:theme="@style/Fullscreen"
             android:screenOrientation="sensorLandscape"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden" />
+        <!-- Shares :game with the native runtime so a saved mapping can be applied when gameplay resumes. -->
+        <activity
+            android:name=".GamepadEditorActivity"
+            android:process=":game"
+            android:launchMode="singleTop"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Fullscreen"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode|density" />
         <!-- Isolated game process: native shutdown leaves the launcher alive. -->
         <activity
             android:name=".GameActivity"
@@ -68,6 +77,15 @@
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode|density">
             <meta-data android:name="android.app.lib_name" android:value="p4g" />
         </activity>
+        <!-- Same isolated process as GameActivity: APP_CMD_PAUSE gates the native game frame loop. -->
+        <activity
+            android:name=".PauseActivity"
+            android:process=":game"
+            android:launchMode="singleTop"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode|density" />
     </application>
 </manifest>
 

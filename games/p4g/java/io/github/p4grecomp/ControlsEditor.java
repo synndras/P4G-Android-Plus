@@ -2,6 +2,7 @@ package io.github.p4grecomp;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -85,6 +86,10 @@ public class ControlsEditor extends Activity {
         Button visibility = button(t("Mostrar / ocultar botões", "Show / hide buttons"), Color.rgb(70, 70, 70));
         visibility.setOnClickListener(v -> showVisibility());
         middle.addView(visibility);
+        Button gamepad = button("Asignar botones del mando", P4gTheme.YELLOW);
+        gamepad.setTextColor(P4gTheme.INK);
+        gamepad.setOnClickListener(v -> startActivity(new Intent(ControlsEditor.this, GamepadEditorActivity.class)));
+        middle.addView(gamepad);
         LinearLayout bar = new LinearLayout(this);
         bar.setGravity(Gravity.CENTER);
         bar.setPadding(0, dp(12), 0, 0);

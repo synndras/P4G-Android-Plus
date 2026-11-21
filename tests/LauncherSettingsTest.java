@@ -26,6 +26,7 @@ public final class LauncherSettingsTest {
         check(java.util.Arrays.equals(Launcher.presetValues("quality"),
                 new String[] {"1080p", "30", "16"}));
         check(Launcher.optionGroup("NX_GAMEPAD_LAYOUT").equals("controls"));
+        check(Launcher.optionGroup("NX_GAMEPAD_MAP").equals("controls"));
         java.util.Map<String, String> config = new java.util.HashMap<>();
         config.put("NX_FSR", "1");
         config.put("NX_SHADOWS", "0");
