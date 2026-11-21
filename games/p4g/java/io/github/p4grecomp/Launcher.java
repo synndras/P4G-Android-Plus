@@ -531,7 +531,7 @@ public class Launcher extends Activity {
         title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         root.addView(title, new LinearLayout.LayoutParams(-1, -2));
         TextView version = new TextView(this);
-        version.setText("BETA  ·  0.5.2");
+        version.setText("BETA  ·  " + appVersionName());
         version.setTextColor(P4gTheme.MUTED);
         version.setTextSize(12);
         version.setTypeface(Typeface.DEFAULT_BOLD);
@@ -602,13 +602,13 @@ public class Launcher extends Activity {
         LinearLayout controls = settingsGroup(root, "controls", t("Controles", "Controls"), "", false);
         LinearLayout content = settingsGroup(root, "content", t("Jogo, saves e mods", "Game, saves and mods"), "", false);
         LinearLayout overlay = settingsGroup(root, "overlay", t("Monitor de desempenho", "Performance monitor"), "", false);
-        LinearLayout support = settingsGroup(root, "more", t("Mais opções", "More options"), "", false);
-        addLauncherSettings(support);
+        LinearLayout moreOptions = settingsGroup(root, "more", t("Mais opções", "More options"), "", false);
+        addLauncherSettings(moreOptions);
         addRow(quick, t("Predefinição gráfica", "Graphics preset"), t("Escolher", "Choose"), v ->
                 new P4gDialog.Builder(this).setTitle(t("Predefinição gráfica", "Graphics preset"))
                         .setItems(new String[] {t("Desempenho", "Performance"), t("Equilibrado", "Balanced"), t("Qualidade", "Quality")},
                                 (dialog, which) -> applyPreset(new String[] {"performance", "normal", "quality"}[which])).show());
-        addRow(support, t("Perfis salvos", "Saved profiles"), t("Escolher", "Choose"), v ->
+        addRow(moreOptions, t("Perfis salvos", "Saved profiles"), t("Escolher", "Choose"), v ->
                 new P4gDialog.Builder(this).setTitle(t("Perfis salvos", "Saved profiles"))
                         .setItems(new String[] {t("Perfil 1", "Profile 1"), t("Perfil 2", "Profile 2"), t("Perfil 3", "Profile 3")},
                                 (dialog, which) -> showProfile(which + 1)).show());
@@ -635,13 +635,13 @@ public class Launcher extends Activity {
             else prepare();
         });
         P4gTheme.section(content, t("Saves e mods", "Saves & mods"));
-        LinearLayout diagnostics = settingsGroup(support, "logs", t("Logs e diagnóstico", "Logs & diagnostics"), "", false);
-        P4gTheme.section(support, t("Comunidade", "Community"));
-        addRow(support, "GitHub", t("Abrir", "Open"),
+        LinearLayout diagnostics = settingsGroup(moreOptions, "logs", t("Logs e diagnóstico", "Logs & diagnostics"), "", false);
+        P4gTheme.section(moreOptions, t("Comunidade", "Community"));
+        addRow(moreOptions, "GitHub", t("Abrir", "Open"),
                 v -> openExternal("https://github.com/synndras/P4G-Android-Plus"));
-        addRow(support, "Discord", t("Entrar", "Join"),
+        addRow(moreOptions, "Discord", t("Entrar", "Join"),
                 v -> openExternal("https://discord.gg/yF6FtNK6rM"));
-        addRow(support, t("Reportar um problema", "Report an issue"), t("Abrir", "Open"),
+        addRow(moreOptions, t("Reportar um problema", "Report an issue"), t("Abrir", "Open"),
                 v -> openExternal("https://github.com/synndras/P4G-Android-Plus/issues/new/choose"));
         for (final Option o : options) {
             String group = optionGroup(o.key);
@@ -896,11 +896,12 @@ public class Launcher extends Activity {
             options.setOrientation(LinearLayout.VERTICAL);
             options.setGravity(Gravity.CENTER_VERTICAL);
             String[][] entries = { {"home", "JUGAR"}, {"display", "PANTALLA"}, {"overlay", "RENDIMIENTO"},
-                    {"controls", "CONTROLES"}, {"content", "ARCHIVOS"}, {"more", "CRÉDITOS"} };
+                    {"controls", "CONTROLES"}, {"content", "ARCHIVOS"},
+                    {"more", t("MÁS OPCIONES", "MORE OPTIONS")}, {"credits", "CRÉDITOS"} };
             for (String[] entry : entries) addNavigationButton(options, entry[0], entry[1], true);
             nav.addView(options, new LinearLayout.LayoutParams(-1, 0, 1f));
             TextView version = new TextView(this);
-            version.setText("P4GP · BETA 0.5.4");
+            version.setText("P4GP · BETA " + appVersionName());
             version.setTextColor(Color.WHITE);
             version.setTextSize(10);
             version.setTypeface(Typeface.DEFAULT_BOLD);
@@ -913,7 +914,8 @@ public class Launcher extends Activity {
             addNavigationButton(nav, "overlay", "RENDIMIENTO", false);
             addNavigationButton(nav, "controls", "CONTROLES", false);
             addNavigationButton(nav, "content", "ARCHIVOS", false);
-            addNavigationButton(nav, "more", "CRÉDITOS", false);
+            addNavigationButton(nav, "more", t("MÁS OPCIONES", "MORE OPTIONS"), false);
+            addNavigationButton(nav, "credits", "CRÉDITOS", false);
             HorizontalScrollView horizontal = new HorizontalScrollView(this);
             horizontal.setHorizontalScrollBarEnabled(false);
             horizontal.addView(nav, new HorizontalScrollView.LayoutParams(-2, -1));
@@ -1060,7 +1062,10 @@ public class Launcher extends Activity {
         button.setTextSize(vertical ? 15 : 13);
         button.setGravity(vertical ? Gravity.START | Gravity.CENTER_VERTICAL : Gravity.CENTER);
         button.setMinHeight(dp(vertical ? 34 : 38));
-        button.setOnClickListener(v -> navigateTo(key));
+        button.setOnClickListener(v -> {
+            if ("credits".equals(key)) showCredits();
+            else navigateTo(key);
+        });
         LinearLayout.LayoutParams params = vertical
                 ? new LinearLayout.LayoutParams(-1, 0, 1f)
                 : new LinearLayout.LayoutParams(dp(132), -1);
@@ -1098,6 +1103,34 @@ public class Launcher extends Activity {
         }
         if (target != null) launcherScroll.post(() -> launcherScroll.smoothScrollTo(0, 0));
         if (scrollRail != null) scrollRail.invalidate();
+    }
+
+    private void showCredits() {
+        String[] links = {
+                "https://github.com/nxdevxz/p4g-android",
+                "https://github.com/Brandon04Gonzalez",
+                "https://github.com/Chakeyy",
+                "https://github.com/synndras/P4G-Android-Plus"
+        };
+        String[] people = {
+                "nxdevxz · " + t("proyecto original", "original project"),
+                "Brandon04Gonzalez",
+                "Chakeyy",
+                "synndras · " + t("creador de este fork", "fork creator")
+        };
+        new P4gDialog.Builder(this)
+                .setTitle(t("Créditos de P4GP", "P4GP credits"))
+                .setMessage(t("Proyecto original, colaboradores y creador de este fork.",
+                        "Original project, contributors, and creator of this fork."))
+                .setItems(people, (dialog, which) -> {
+                    dialog.dismiss();
+                    openExternal(links[which]);
+                }).show();
+    }
+
+    private String appVersionName() {
+        try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
+        catch (Exception ignored) { return "0.5.6-beta"; }
     }
 
     private View buildTopBar(boolean showLogo) {
@@ -1174,7 +1207,7 @@ public class Launcher extends Activity {
         panel.addView(tv);
         if (!launcherLandscape()) {
             TextView version = new TextView(this);
-            version.setText("P4GP · BETA 0.5.4");
+            version.setText("P4GP · BETA " + appVersionName());
             version.setTextColor(Color.WHITE);
             version.setTextSize(10);
             version.setTypeface(Typeface.DEFAULT_BOLD);
