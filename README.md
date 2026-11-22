@@ -1,6 +1,6 @@
 # P4GP — Persona 4 Golden for Android
 
-**0.5.6** · ARM64 · Vulkan · Multilingual app interface
+**0.5.7** · ARM64 · Vulkan · Multilingual app interface
 
 P4GP is an unofficial Android port of the Nintendo Switch version of **Persona 4 Golden**. It uses native ARM64 execution and a compatibility runtime that translates the game's NVN graphics commands to Vulkan.
 
@@ -64,7 +64,7 @@ Launcher settings and Performance monitor are accessible from the main screen. D
 
 | Setting | Purpose |
 |---|---|
-| Output resolution | Select 360p, 480p, 720p or 1080p. |
+| Output resolution | Select 360p, 480p, 720p, 1080p, 1440p, 2160p or the device's native resolution. |
 | Fullscreen (stretch) | Fill the screen when enabled; preserve the game image's aspect ratio when disabled. |
 | FPS limit | Choose 30 FPS, 45 FPS or the option labeled 60 FPS. |
 | FPS counter | Show or hide the frame-rate counter. |
@@ -144,7 +144,7 @@ Do not attach game dumps or encryption keys to public bug reports.
 2. Configure the repository secrets `P4G_SIGNING_KEY_B64` and `P4G_SIGNING_PASSWORD` required by `.github/workflows/build-p4g.yml`.
 3. Open **Actions → P4G Beta → Run workflow**.
 4. Wait for a successful build.
-5. Download the **P4GP-0.5.6** artifact and extract **P4GP.apk**.
+5. Download the **P4GP-0.5.7** artifact and extract **P4GP.apk**.
 
 The workflow builds the native runtime and preparation libraries, compiles the Java interface, runs the included checks and packages the APK. A successful build does not replace testing on an Android device.
 

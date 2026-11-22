@@ -266,7 +266,8 @@ public final class PauseActivity extends Activity {
 
     private void buildVideoOptions() {
         addSelector("Resolución interna", "Selecciona una resolución disponible", "RESOLUTION",
-                new String[] {"360p", "480p", "720p", "1080p"}, new String[] {"360p", "480p", "720p", "1080p"}, "720p");
+                new String[] {"360p", "480p", "720p", "1080p", "1440p", "2160p", "native"},
+                new String[] {"360p", "480p", "720p", "1080p", "1440p", "2160p", "Nativa"}, "720p");
         addSelector("Relación de aspecto", "Formato de imagen del juego", "NX_STRETCH",
                 new String[] {"0", "hor+", "16:10", "1"}, new String[] {"16:9", "HOR+", "16:10", "Estirar"}, "0");
     }
@@ -501,7 +502,8 @@ public final class PauseActivity extends Activity {
     private boolean saveOption(String key, String value) {
         Map<String, String> previous = new LinkedHashMap<>(config);
         config.put(key, value);
-        if ("RESOLUTION".equals(key)) Launcher.putResolution(config, value);
+        if ("RESOLUTION".equals(key))
+            Launcher.putResolution(config, value, Launcher.nativeResolutionDimensions(this));
         if (!Launcher.writeConfig(new File(Launcher.dataDir(), "config.txt"), config)) {
             config.clear();
             config.putAll(previous);

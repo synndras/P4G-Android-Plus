@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
+import android.graphics.Point;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
@@ -19,6 +20,7 @@ import android.provider.Settings;
 import android.system.Os;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowManager;
@@ -100,6 +102,7 @@ public class Launcher extends Activity {
     View homePanel;
     P4gScrollRail scrollRail;
     String selectedNav = "home";
+    private static final String[] CATEGORY_NAV_ORDER = {"home", "display", "overlay", "controls", "content", "more"};
     static final int PICK_ZIP = 1, PICK_FOLDER = 2, PICK_GAME = 3, PICK_KEYS = 4, PREPARE = 6, PICK_CPK = 7,
             PICK_DRIVER = 8, PICK_UPDATE = 9;
 
@@ -313,9 +316,9 @@ public class Launcher extends Activity {
         if (launcherLandscape()) getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         options.add(new Option("RESOLUTION", "Resolução de saída", "Output resolution",
-                new String[] {"360p", "480p", "720p", "1080p"},
-                new String[] {"360p", "480p", "720p", "1080p"},
-                new String[] {"360p", "480p", "720p", "1080p"}, 2));
+                new String[] {"360p", "480p", "720p", "1080p", "1440p", "2160p", "native"},
+                new String[] {"360p", "480p", "720p", "1080p", "1440p", "2160p", "Nativa"},
+                new String[] {"360p", "480p", "720p", "1080p", "1440p", "2160p", "Native"}, 2));
         options.add(new Option("NX_STRETCH", "Formato da tela", "Screen format",
                 new String[] {"0", "hor+", "16:10", "1"},
                 new String[] {"16:9", "HOR+", "16:10", "Esticar"},
@@ -531,7 +534,7 @@ public class Launcher extends Activity {
         title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         root.addView(title, new LinearLayout.LayoutParams(-1, -2));
         TextView version = new TextView(this);
-        version.setText("BETA  ·  " + appVersionName());
+        version.setText("P4GP  ·  " + appVersionName());
         version.setTextColor(P4gTheme.MUTED);
         version.setTextSize(12);
         version.setTypeface(Typeface.DEFAULT_BOLD);
@@ -841,7 +844,7 @@ public class Launcher extends Activity {
             screen.addView(createNavigation(false), new LinearLayout.LayoutParams(-1, dp(52)));
             FrameLayout scrollFrame = buildScrollFrame(scroll);
             screen.addView(scrollFrame, new LinearLayout.LayoutParams(-1, 0, 1f));
-            screen.addView(buildActionBar(false), new LinearLayout.LayoutParams(-1, dp(82)));
+            screen.addView(buildActionBar(false), new LinearLayout.LayoutParams(-1, dp(120)));
         }
         scene.addView(screen, new FrameLayout.LayoutParams(-1, -1));
         setContentView(scene);
@@ -901,7 +904,7 @@ public class Launcher extends Activity {
             for (String[] entry : entries) addNavigationButton(options, entry[0], entry[1], true);
             nav.addView(options, new LinearLayout.LayoutParams(-1, 0, 1f));
             TextView version = new TextView(this);
-            version.setText("P4GP · BETA " + appVersionName());
+            version.setText("P4GP · " + appVersionName());
             version.setTextColor(Color.WHITE);
             version.setTextSize(10);
             version.setTypeface(Typeface.DEFAULT_BOLD);
@@ -930,7 +933,7 @@ public class Launcher extends Activity {
         page.setBackgroundColor(Color.TRANSPARENT);
         page.addView(buildTopBar(false), new LinearLayout.LayoutParams(-1, dp(58)));
         page.addView(buildScrollFrame(scroll), new LinearLayout.LayoutParams(-1, 0, 1f));
-        page.addView(buildActionBar(true), new LinearLayout.LayoutParams(-1, dp(80)));
+        page.addView(buildActionBar(true), new LinearLayout.LayoutParams(-1, dp(120)));
         return page;
     }
 
@@ -952,21 +955,25 @@ public class Launcher extends Activity {
         LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(0, dp(66), landscape ? 45f : 1f);
         statusParams.rightMargin = dp(8);
         actions.addView(panel, statusParams);
-        FrameLayout playFrame = new FrameLayout(this);
-        playFrame.setClipChildren(false);
-        playFrame.addView(play, new FrameLayout.LayoutParams(-1, dp(66), Gravity.BOTTOM));
+        LinearLayout playColumn = new LinearLayout(this);
+        playColumn.setOrientation(LinearLayout.VERTICAL);
+        playColumn.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         updateNotice = new P4gQuickButton(this);
-        updateNotice.setTextSize(11);
+        updateNotice.setTextSize(14);
         updateNotice.setActive(true);
-        updateNotice.setText(t("NUEVA VERSIÓN", "NEW UPDATE"));
+        updateNotice.setText(t("NUEVA ACTUALIZACIÓN", "NEW UPDATE"));
         updateNotice.setContentDescription(t("Hay una nueva versión disponible", "A new version is available"));
         updateNotice.setVisibility(View.GONE);
-        FrameLayout.LayoutParams noticeParams = new FrameLayout.LayoutParams(dp(176), dp(28), Gravity.RIGHT | Gravity.TOP);
-        playFrame.addView(updateNotice, noticeParams);
+        updateNotice.setMinHeight(dp(38));
+        LinearLayout.LayoutParams noticeParams = new LinearLayout.LayoutParams(dp(240), dp(38));
+        noticeParams.gravity = Gravity.END;
+        noticeParams.bottomMargin = dp(3);
+        playColumn.addView(updateNotice, noticeParams);
+        playColumn.addView(play, new LinearLayout.LayoutParams(-1, dp(66)));
         updateNotice.setOnClickListener(v -> openExternal(updateReleaseUrl == null
                 ? "https://github.com/synndras/P4G-Android-Plus/releases" : updateReleaseUrl));
-        LinearLayout.LayoutParams playParams = new LinearLayout.LayoutParams(0, dp(66), landscape ? 40f : 1f);
-        actions.addView(playFrame, playParams);
+        LinearLayout.LayoutParams playParams = new LinearLayout.LayoutParams(0, -2, landscape ? 40f : 1f);
+        actions.addView(playColumn, playParams);
         if (landscape) actions.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 15f));
         return actions;
     }
@@ -1021,7 +1028,8 @@ public class Launcher extends Activity {
                 if (request != updateCheckGeneration || updateNotice == null || isFinishing() || isDestroyed()) return;
                 if (releaseVersion == null || compareVersions(releaseVersion, installedVersion) <= 0) return;
                 updateReleaseUrl = releaseUrl;
-                updateNotice.setText(t("NUEVA VERSIÓN · " + releaseVersion, "NEW UPDATE · " + releaseVersion));
+                updateNotice.setText(t("NUEVA ACTUALIZACIÓN · " + releaseVersion,
+                        "NEW UPDATE · " + releaseVersion));
                 updateNotice.setContentDescription(t("Actualizar a " + releaseVersion,
                         "Update to " + releaseVersion));
                 updateNotice.setVisibility(View.VISIBLE);
@@ -1101,8 +1109,86 @@ public class Launcher extends Activity {
             drawerStates.put(group, true);
             if (header != null) header.setText("−  " + header.getText().toString().replaceFirst("^[+−]  ", ""));
         }
-        if (target != null) launcherScroll.post(() -> launcherScroll.smoothScrollTo(0, 0));
+        if (target != null) launcherScroll.post(() -> {
+            launcherScroll.smoothScrollTo(0, 0);
+            focusFirstSubmenuControl(target, sectionHeaders.get(key));
+        });
         if (scrollRail != null) scrollRail.invalidate();
+    }
+
+    private void cycleLauncherCategory(int direction) {
+        int current = 0;
+        for (int i = 0; i < CATEGORY_NAV_ORDER.length; i++) {
+            if (CATEGORY_NAV_ORDER[i].equals(selectedNav)) { current = i; break; }
+        }
+        int next = (current + direction + CATEGORY_NAV_ORDER.length) % CATEGORY_NAV_ORDER.length;
+        navigateTo(CATEGORY_NAV_ORDER[next]);
+    }
+
+    private void collectSubmenuFocusables(View view, View skip, List<View> out) {
+        if (view == null || view == skip || view.getVisibility() != View.VISIBLE || !view.isEnabled()) return;
+        if (view.isFocusable() && view.isClickable()) out.add(view);
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++)
+                collectSubmenuFocusables(group.getChildAt(i), skip, out);
+        }
+    }
+
+    private List<View> submenuFocusables() {
+        ArrayList<View> focusables = new ArrayList<>();
+        View section = sectionCards.get(selectedNav);
+        collectSubmenuFocusables(section, sectionHeaders.get(selectedNav), focusables);
+        return focusables;
+    }
+
+    private void focusFirstSubmenuControl(View section, View skip) {
+        ArrayList<View> focusables = new ArrayList<>();
+        collectSubmenuFocusables(section, skip, focusables);
+        if (!focusables.isEmpty()) focusables.get(0).requestFocus();
+    }
+
+    private boolean moveSubmenuFocus(int direction) {
+        List<View> focusables = submenuFocusables();
+        if (focusables.isEmpty()) return false;
+        int current = focusables.indexOf(getCurrentFocus());
+        int next = current < 0 ? (direction > 0 ? 0 : focusables.size() - 1)
+                : (current + direction + focusables.size()) % focusables.size();
+        return focusables.get(next).requestFocus();
+    }
+
+    private boolean adjustFocusedOption(int direction) {
+        View focused = getCurrentFocus();
+        if (focused == null || !(focused.getTag() instanceof Option)) return false;
+        Option option = (Option) focused.getTag();
+        if (option.values.length < 2) return true;
+        option.pick = (option.pick + direction + option.values.length) % option.values.length;
+        if (save()) updateButtons(getWindow().getDecorView());
+        return true;
+    }
+
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() != KeyEvent.ACTION_DOWN) return super.dispatchKeyEvent(event);
+        int key = event.getKeyCode();
+        if (key == KeyEvent.KEYCODE_BUTTON_L1 || key == KeyEvent.KEYCODE_BUTTON_R1) {
+            if (event.getRepeatCount() == 0) cycleLauncherCategory(key == KeyEvent.KEYCODE_BUTTON_L1 ? -1 : 1);
+            return true;
+        }
+        if (!"home".equals(selectedNav)) {
+            if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (moveSubmenuFocus(key == KeyEvent.KEYCODE_DPAD_UP ? -1 : 1)) return true;
+            } else if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                if (adjustFocusedOption(key == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1)) return true;
+            } else if (key == KeyEvent.KEYCODE_BUTTON_A || key == KeyEvent.KEYCODE_ENTER
+                    || key == KeyEvent.KEYCODE_DPAD_CENTER) {
+                View focused = getCurrentFocus();
+                if (event.getRepeatCount() == 0 && focused != null && focused.isClickable()) {
+                    focused.performClick();
+                    return true;
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event);
     }
 
     private void showCredits() {
@@ -1130,7 +1216,7 @@ public class Launcher extends Activity {
 
     private String appVersionName() {
         try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
-        catch (Exception ignored) { return "0.5.6-beta"; }
+        catch (Exception ignored) { return "0.5.7"; }
     }
 
     private View buildTopBar(boolean showLogo) {
@@ -1207,7 +1293,7 @@ public class Launcher extends Activity {
         panel.addView(tv);
         if (!launcherLandscape()) {
             TextView version = new TextView(this);
-            version.setText("P4GP · BETA " + appVersionName());
+            version.setText("P4GP · " + appVersionName());
             version.setTextColor(Color.WHITE);
             version.setTextSize(10);
             version.setTypeface(Typeface.DEFAULT_BOLD);
@@ -1718,24 +1804,39 @@ public class Launcher extends Activity {
     }
 
     static void putResolution(Map<String, String> target, String resolution) {
+        putResolution(target, resolution, null);
+    }
+
+    static void putResolution(Map<String, String> target, String resolution, String nativeDimensions) {
         target.put("RESOLUTION", resolution);
-        if ("360p".equals(resolution) || "480p".equals(resolution)) {
-            String dimensions = "360p".equals(resolution) ? "640x360" : "854x480";
-            target.put("NX_HANDHELD", "1");
-            target.put("resolution", dimensions);
-            target.put("NX_RENDER_RES", dimensions);
-            target.put("NX_RES", resolution);
-        } else if ("1080p".equals(resolution)) {
-            target.put("NX_HANDHELD", "0");
-            target.put("resolution", "1920x1080");
-            target.put("NX_RENDER_RES", "1920x1080");
-            target.put("NX_RES", "1080p");
-        } else {
-            target.put("NX_HANDHELD", "1");
-            target.put("resolution", "1280x720");
-            target.put("NX_RENDER_RES", "1280x720");
-            target.put("NX_RES", "720p");
+        String dimensions;
+        boolean handheld;
+        if ("360p".equals(resolution)) { dimensions = "640x360"; handheld = true; }
+        else if ("480p".equals(resolution)) { dimensions = "854x480"; handheld = true; }
+        else if ("720p".equals(resolution)) { dimensions = "1280x720"; handheld = true; }
+        else if ("1080p".equals(resolution)) { dimensions = "1920x1080"; handheld = false; }
+        else if ("1440p".equals(resolution)) { dimensions = "2560x1440"; handheld = false; }
+        else if ("2160p".equals(resolution)) { dimensions = "3840x2160"; handheld = false; }
+        else if ("native".equalsIgnoreCase(resolution)) {
+            dimensions = nativeDimensions == null ? "1920x1080" : nativeDimensions;
+            handheld = false;
+        } else { dimensions = "1280x720"; handheld = true; }
+        target.put("NX_HANDHELD", handheld ? "1" : "0");
+        target.put("resolution", dimensions);
+        target.put("NX_RENDER_RES", dimensions);
+        target.put("NX_RES", resolution);
+    }
+
+    static String nativeResolutionDimensions(Activity activity) {
+        Point size = new Point();
+        activity.getWindowManager().getDefaultDisplay().getRealSize(size);
+        if (size.x <= 0 || size.y <= 0) {
+            size.x = activity.getResources().getDisplayMetrics().widthPixels;
+            size.y = activity.getResources().getDisplayMetrics().heightPixels;
         }
+        int width = Math.max(size.x, size.y) & ~1;
+        int height = Math.min(size.x, size.y) & ~1;
+        return Math.max(2, width) + "x" + Math.max(2, height);
     }
 
     static void removeRetiredSettings(Map<String, String> settings) {
@@ -1754,7 +1855,7 @@ public class Launcher extends Activity {
         }
         load();
         for (Option o : options) config.put(o.key, o.values[o.pick]);
-        putResolution(config, config.get("RESOLUTION"));
+        putResolution(config, config.get("RESOLUTION"), nativeResolutionDimensions(this));
         removeRetiredSettings(config);
         if (writeConfig(new File(dataDir(), "config.txt"), config)) {
             updateBackgroundEffect();
