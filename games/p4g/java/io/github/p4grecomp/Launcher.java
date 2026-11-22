@@ -1216,7 +1216,7 @@ public class Launcher extends Activity {
 
     private String appVersionName() {
         try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
-        catch (Exception ignored) { return "0.5.7"; }
+        catch (Exception ignored) { return "0.5.7.a"; }
     }
 
     private View buildTopBar(boolean showLogo) {
